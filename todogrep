@@ -1,0 +1,15 @@
+#!/usr/bin/env sh
+
+set -e
+
+[ "$1" ] && rootdir="$1" || rootdir=$(pwd);
+
+# TODO(feat): cli arg for maxlen
+maxlen=50 # prune todo message after $maxlen bytes
+find '.' -type f -not -wholename '\./Makefile' -not -path '\./\.git/*' |
+  xargs grep -on 'TODO([^)]*): .*' |
+  sed -E 's/^([^:]+):([[:digit:]]+):TODO\(([[:alnum:]]+)\): (.{0,'"$maxlen"'}).*$/\3|\4|\1:\2/g' |
+  column -t -s '|' |
+  sort
+
+# TODO(feat): README.md
