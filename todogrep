@@ -9,13 +9,13 @@ _watchlist() {
   find "$WHERE" -type f -not -path '\./\.git/*' -exec grep -Iq . {} \; -printf "%P\0"
 }
 
-# TODO(feat): Beautify column output. Check out showtable.
+# TODO(feat): Beautify column output.
 _todogrep() {
   _watchlist |
     xargs -0 grep -on 'TODO([^)]*):.*' |
+    sed -e 's/^M$//' -e 's/\s\+$//g' |
     sed 's/^\(.*\):\([0-9]\+\):TODO(\([^)]\+\)):\s*\(.*\)/\3‡\1‡\2‡\4‡/g' |
-    sort |
-    { printf '───\n‡Type‡File‡Line‡What\n───\n'; cat - ;} |
+    { printf '‡Type‡File‡Line‡What\n'; cat - ;} |
     column -t -s '‡'
 }
 
