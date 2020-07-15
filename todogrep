@@ -2,14 +2,13 @@
 
 set -e
 
-set --
-
 # TODO(feat): Parse blacklist from ~/.config/todogrep/todogreprc
 _watchlist() {
   find "$WHERE" -type f -not -path '\./\.git/*' -exec grep -Iq . {} \; -printf "%P\0"
 }
 
 # TODO(feat): Beautify column output.
+# TODO(feat): Detect TODOs with empty type.
 _todogrep() {
   _watchlist |
     xargs -0 grep -on 'TODO([^)]*):.*' |
