@@ -31,3 +31,7 @@ esac
 
 # TODO(feat): cli arg for maxlen
 # TODO(feat): README.md
+# TODO(feat): Deal with more patterns:
+#   - TODO          = not reconized
+#   - TODO: ...     = not recognized
+#   - TODO():       = breaks everything
