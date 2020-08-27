@@ -35,3 +35,5 @@ esac
 #   - TODO          = not reconized
 #   - TODO: ...     = not recognized
 #   - TODO():       = breaks everything
+# TODO(feat): Parallelize execution (xargs)
+# TODO(feat): Read files to parse from stdin
