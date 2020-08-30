@@ -3,37 +3,38 @@
 set -e
 
 # TODO(feat): Parse blacklist from ~/.config/todogrep/todogreprc
+# TODO 
 _watchlist() {
-  find "$WHERE" -type f -not -path '\./\.git/*' -exec grep -Iq . {} \; -printf "%P\0"
+  find "$WHERE" -type f -not -path '\./\.git/*' -exec grep -Iq . {} \; -printf "%P\0" |
+    { if [ "$1" = "-" ]; then tr '\0' '\n'; else cat; fi }
 }
 
-# TODO(feat): Beautify column output.
-# TODO(feat): Detect TODOs with empty type.
 _todogrep() {
   _watchlist |
     xargs -0 grep -on 'TODO([^)]*):.*' |
-    sed -e 's/^M$//' -e 's/\s\+$//g' |
-    sed 's/^\(.*\):\([0-9]\+\):TODO(\([^)]\+\)):\s*\(.*\)/\3‡\1‡\2‡\4‡/g' |
-    { printf '‡Type‡File‡Line‡What\n'; cat - ;} |
+    sed -e 's/^M$//' \
+      -e 's/\s\+$//g' \
+      -e 's/TODO:/TODO():/g' \
+      -e 's/TODO():/TODO( ):/g' \
+      -e 's/^\(.*\):\([0-9]\+\):TODO(\([^)]*\)):\s*\(.*\)/\3‡\1‡\2‡\4‡/g' |
+    { printf '‡Tag‡File‡Line‡What\n'; cat - ; } |
     column -t -s '‡'
 }
 
 [ -d "$1" ] && WHERE="$1" || WHERE='.'
 
 case "$1" in
-  -l|--watchlist)
-    _watchlist | tr '\0' '\n'
+  ls)
+    _watchlist -
     ;;
   *)
     _todogrep
     ;;
 esac
 
+# TODO(feat): Parse args with zshell?
 # TODO(feat): cli arg for maxlen
 # TODO(feat): README.md
-# TODO(feat): Deal with more patterns:
-#   - TODO          = not reconized
-#   - TODO: ...     = not recognized
-#   - TODO():       = breaks everything
 # TODO(feat): Parallelize execution (xargs)
 # TODO(feat): Read files to parse from stdin
+# TODO(opt): Beautify column output for terminal output
