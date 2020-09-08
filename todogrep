@@ -2,39 +2,45 @@
 
 set -e
 
-# TODO(feat): Parse blacklist from ~/.config/todogrep/todogreprc
-# TODO 
-_watchlist() {
-  find "$WHERE" -type f -not -path '\./\.git/*' -exec grep -Iq . {} \; -printf "%P\0" |
-    { if [ "$1" = "-" ]; then tr '\0' '\n'; else cat; fi }
-}
+# Settings - eventually to be read from config/cli
+WORKERS=8
+MAXHITS=32
+OUTPUTCOLS=$(tput cols)
 
-_todogrep() {
-  _watchlist |
-    xargs -0 grep -on 'TODO([^)]*):.*' |
-    sed -e 's/^M$//' \
-      -e 's/\s\+$//g' \
-      -e 's/TODO:/TODO():/g' \
-      -e 's/TODO():/TODO( ):/g' \
-      -e 's/^\(.*\):\([0-9]\+\):TODO(\([^)]*\)):\s*\(.*\)/\3‡\1‡\2‡\4‡/g' |
-    { printf '‡Tag‡File‡Line‡What\n'; cat - ; } |
-    column -t -s '‡'
-}
+find . -type f -not -path '*/\.*' -print0 |
+  xargs -0 -P $WORKERS -n 1 grep -n -Z -H -o "TODO[ :(].*$" 2>/dev/null |
+  tr '\0' '' |
+  # unix line endings
+  sed 's/\r$//' |
+  # HACK: using 'grep -I' to filter binary files causes massive slowdown
+  grep -v '^Binary file' |
+  head -n $MAXHITS |
+  # unify TODO(): syntax
+  sed -e 's/TODO /TODO():/' \
+    -e 's/TODO:/TODO():/' \
+    -e 's/TODO(\([^)]*\))[^:]/TODO(\1):/' |
+  # use 'none' as default tag
+  sed 's/TODO(\s*):/TODO(none):/' |
+  # use \d29 as a separator
+  sed 's/^\(.*\)\([0-9]\+\):TODO(\([^)]*\)):\s\?\(.*\).*$/\3\1\2\4\/g' |
+  column -o ' │ ' -c $(($OUTPUTCOLS-2)) -s '' -t -N "Tag,File,Line,What, " -H - -W 2,4 |
+  # fancy table formatting
+  sed -e 's/^/│ /' -e 's/\s\+$//g' -e '1p;1p' |
+  sed -e '1s/[[:alpha:]]/ /g' -e '1s/ /─/g' -e '1s/│/┌/' -e '1s/│/┐/4' -e '1s/│/┬/g' |
+  sed -e '3s/[[:alpha:]]/ /g' -e '3s/ /─/g' -e '3s/│/├/' -e '3s/│/┤/4' -e '3s/│/┼/g' |
+  awk '{ if (NR == 1) first=$0; print $0 } END{ print first }' |
+  sed -e '$s/┬/┴/g' -e '$s/┌/└/' -e '$s/┐/┘/' |
+  # color font
+  sed '2s/\([[:alpha:]]\+\)/'"$(printf '\033[1m')"'\1'"$(printf '\033[0m')"'/g' |
+  sed 's/^│ none/│ '"$(printf '\033[90m')"'none'"$(printf '\033[0m')"'/g'
 
-[ -d "$1" ] && WHERE="$1" || WHERE='.'
-
-case "$1" in
-  ls)
-    _watchlist -
-    ;;
-  *)
-    _todogrep
-    ;;
-esac
-
-# TODO(feat): Parse args with zshell?
-# TODO(feat): cli arg for maxlen
+# TODO(feat): Expose settings via todogreprc and cli
 # TODO(feat): README.md
-# TODO(feat): Parallelize execution (xargs)
-# TODO(feat): Read files to parse from stdin
-# TODO(opt): Beautify column output for terminal output
+# TODO(perf): xargs does not terminate its workers after 'head' elicits SIGPIPE
+#   i.e. xargs keep going until every file has been processes, despite
+#   the fact that none of the output is going anywhere.
+#
+#  > find . -type f -exec grep -Iq . {} \; -print0 |
+#     xargs -0 -P $WORKERS -n 1 grep -n -Z -H -o "TODO[ :(].*$" 2>/dev/null |
+#     head -n $MAXHITS | ...
+# TODO(opt): -t tag / -T notag (show and hide tags);
