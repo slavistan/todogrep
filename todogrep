@@ -44,3 +44,4 @@ find . -type f -not -path '*/\.*' -print0 |
 #     xargs -0 -P $WORKERS -n 1 grep -n -Z -H -o "TODO[ :(].*$" 2>/dev/null |
 #     head -n $MAXHITS | ...
 # TODO(opt): -t tag / -T notag (show and hide tags);
+# TODO: Include proper code tags. See https://www.python.org/dev/peps/pep-0350/
